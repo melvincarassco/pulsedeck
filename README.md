@@ -88,6 +88,10 @@ pulsedeck/
 
 > "Spreadsheets encode fragile business flow in cells; PulseDeck encodes the same flow as an explicit, runnable graph + API — better for automation, audit, and handoff to engineering."
 
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started, and our [Code of Conduct](CODE_OF_CONDUCT.md) for community guidelines.
+
 ## 📝 License
 
 MIT
