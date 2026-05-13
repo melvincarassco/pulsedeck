@@ -88,11 +88,33 @@ export default function StepNode({ id, data, selected }) {
         position={Position.Left}
         className="!bg-purple-500 !border-bg-primary !w-2 !h-2"
       />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!bg-purple-500 !border-bg-primary !w-2 !h-2"
-      />
+      {data.stepType === 'condition' ? (
+        <>
+          <Handle
+            type="source"
+            id="true"
+            position={Position.Right}
+            style={{ top: '30%' }}
+            className="!bg-emerald-500 !border-bg-primary !w-3 !h-3"
+          />
+          <div className="absolute right-0 top-[30%] -mt-1.5 -mr-8 text-[9px] font-bold text-emerald-500 uppercase">True</div>
+          
+          <Handle
+            type="source"
+            id="false"
+            position={Position.Right}
+            style={{ top: '70%' }}
+            className="!bg-rose-500 !border-bg-primary !w-3 !h-3"
+          />
+          <div className="absolute right-0 top-[70%] -mt-1.5 -mr-9 text-[9px] font-bold text-rose-500 uppercase">False</div>
+        </>
+      ) : (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!bg-purple-500 !border-bg-primary !w-2 !h-2"
+        />
+      )}
     </div>
   );
 }

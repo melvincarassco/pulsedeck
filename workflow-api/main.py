@@ -1,19 +1,15 @@
-"""
-PulseDeck Workflow API — FastAPI backend
-In-memory MVP: all data resets on restart.
-"""
-
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Any, Optional
 import uuid
 import time
-import threading
+from apscheduler.schedulers.background import BackgroundScheduler
+import database
+from execution_engine import run_graph_async
 
-app = FastAPI(title="PulseDeck Workflow API", version="1.0.0")
+app = FastAPI(title="PulseDeck Workflow API", version="2.0.0")
 
-# CORS — open for local dev
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,12 +17,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ===== In-memory stores =====
-workflows: dict[str, dict] = {}
-executions: dict[str, dict] = {}
+scheduler = BackgroundScheduler()
 
+@app.on_event("startup")
+def startup_event():
+    database.init_db()
+    scheduler.start()
 
-# ===== Models =====
 class WorkflowPayload(BaseModel):
     workflowName: str = "Untitled Workflow"
     version: str = "1.0"
@@ -34,70 +31,38 @@ class WorkflowPayload(BaseModel):
     canvas: dict = {"nodes": [], "edges": []}
     parameters: dict = {}
 
-
-class ValidationResult(BaseModel):
-    valid: bool
-    errors: list[str] = []
-
-
-# ===== Workflow Endpoints =====
-
 @app.post("/workflows")
 def create_workflow(payload: WorkflowPayload):
     wf_id = str(uuid.uuid4())[:8]
-    workflows[wf_id] = {
-        "id": wf_id,
-        "workflowName": payload.workflowName,
-        "version": payload.version,
-        "savedAt": payload.savedAt or time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "canvas": payload.canvas,
-        "parameters": payload.parameters,
-    }
+    data = payload.dict()
+    data["savedAt"] = data["savedAt"] or time.strftime("%Y-%m-%dT%H:%M:%SZ")
+    database.save_workflow(wf_id, data)
     return {"id": wf_id}
-
 
 @app.get("/workflows")
 def list_workflows():
-    summaries = [
-        {
-            "id": wf["id"],
-            "workflowName": wf["workflowName"],
-            "savedAt": wf["savedAt"],
-            "nodeCount": len(wf.get("canvas", {}).get("nodes", [])),
-        }
-        for wf in workflows.values()
-    ]
-    return {"workflows": summaries}
-
+    return {"workflows": database.get_all_workflows()}
 
 @app.get("/workflows/{wf_id}")
 def get_workflow(wf_id: str):
-    if wf_id not in workflows:
-        raise HTTPException(404, "Workflow not found")
-    return workflows[wf_id]
-
+    wf = database.get_workflow(wf_id)
+    if not wf: raise HTTPException(404, "Workflow not found")
+    return wf
 
 @app.put("/workflows/{wf_id}")
 def update_workflow(wf_id: str, payload: WorkflowPayload):
-    if wf_id not in workflows:
-        raise HTTPException(404, "Workflow not found")
-    workflows[wf_id] = {
-        "id": wf_id,
-        "workflowName": payload.workflowName,
-        "version": payload.version,
-        "savedAt": payload.savedAt or time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "canvas": payload.canvas,
-        "parameters": payload.parameters,
-    }
+    wf = database.get_workflow(wf_id)
+    if not wf: raise HTTPException(404, "Workflow not found")
+    data = payload.dict()
+    data["savedAt"] = data["savedAt"] or time.strftime("%Y-%m-%dT%H:%M:%SZ")
+    database.save_workflow(wf_id, data)
     return {"id": wf_id, "status": "updated"}
-
 
 @app.post("/workflows/{wf_id}/validate")
 def validate_workflow(wf_id: str):
-    if wf_id not in workflows:
-        raise HTTPException(404, "Workflow not found")
-
-    wf = workflows[wf_id]
+    wf = database.get_workflow(wf_id)
+    if not wf: raise HTTPException(404, "Workflow not found")
+    
     errors = []
     nodes = wf.get("canvas", {}).get("nodes", [])
     edges = wf.get("canvas", {}).get("edges", [])
@@ -105,7 +70,6 @@ def validate_workflow(wf_id: str):
     if len(nodes) == 0:
         errors.append("Workflow has no steps.")
 
-    # Check all edges reference valid nodes
     node_ids = {n["id"] for n in nodes}
     for edge in edges:
         if edge.get("source") not in node_ids:
@@ -113,110 +77,81 @@ def validate_workflow(wf_id: str):
         if edge.get("target") not in node_ids:
             errors.append(f"Edge references unknown target: {edge.get('target')}")
 
-    # Check for disconnected nodes
-    connected = set()
-    for edge in edges:
-        connected.add(edge.get("source"))
-        connected.add(edge.get("target"))
+    connected = {edge.get("source") for edge in edges} | {edge.get("target") for edge in edges}
     disconnected = [n["id"] for n in nodes if n["id"] not in connected]
     if disconnected and len(nodes) > 1:
         errors.append(f"Disconnected nodes: {', '.join(disconnected)}")
 
-    return ValidationResult(valid=len(errors) == 0, errors=errors)
+    return {"valid": len(errors) == 0, "errors": errors}
 
-
-@app.post("/workflows/{wf_id}/run")
-def run_workflow(wf_id: str):
-    if wf_id not in workflows:
-        raise HTTPException(404, "Workflow not found")
+def trigger_workflow_run(wf_id: str, trigger_payload: dict = None):
+    wf = database.get_workflow(wf_id)
+    if not wf: raise Exception("Workflow not found")
 
     exec_id = str(uuid.uuid4())[:8]
-    wf = workflows[wf_id]
     nodes = wf.get("canvas", {}).get("nodes", [])
+    edges = wf.get("canvas", {}).get("edges", [])
+    params = wf.get("parameters", {})
 
-    # Initialize execution record
-    executions[exec_id] = {
+    database.save_execution(exec_id, {
         "executionId": exec_id,
         "workflowId": wf_id,
         "status": "running",
-        "logs": [
-            {"timestamp": _ts(), "level": "info", "message": f"Starting workflow: {wf['workflowName']}"},
-            {"timestamp": _ts(), "level": "info", "message": f"Found {len(nodes)} step(s) to execute."},
-        ],
+        "logs": [{"timestamp": time.strftime("%H:%M:%S"), "level": "info", "message": f"Starting workflow: {wf['workflowName']}"}],
         "nodeResults": {},
-    }
+    })
 
-    # Run asynchronously (simulated)
-    thread = threading.Thread(target=_simulate_execution, args=(exec_id, nodes))
-    thread.start()
+    run_graph_async(exec_id, nodes, edges, params, trigger_payload)
+    return exec_id
 
-    return {"executionId": exec_id, "status": "running"}
+@app.post("/workflows/{wf_id}/run")
+def run_workflow(wf_id: str):
+    try:
+        exec_id = trigger_workflow_run(wf_id)
+        return {"executionId": exec_id, "status": "running"}
+    except Exception as e:
+        raise HTTPException(404, str(e))
 
+@app.post("/webhook/{wf_id}")
+async def webhook_trigger(wf_id: str, request: Request):
+    """Real-world integration: Webhook trigger"""
+    payload = await request.json()
+    try:
+        exec_id = trigger_workflow_run(wf_id, payload)
+        return {"executionId": exec_id, "status": "running", "message": "Webhook received"}
+    except Exception as e:
+        raise HTTPException(404, str(e))
+
+class SchedulePayload(BaseModel):
+    cron_expression: str # e.g. "*/5 * * * *" for every 5 mins
+
+@app.post("/workflows/{wf_id}/schedule")
+def schedule_workflow(wf_id: str, payload: SchedulePayload):
+    """Epic 5: Scheduled Triggers"""
+    wf = database.get_workflow(wf_id)
+    if not wf: raise HTTPException(404, "Workflow not found")
+    
+    from apscheduler.triggers.cron import CronTrigger
+    
+    try:
+        trigger = CronTrigger.from_crontab(payload.cron_expression)
+        job_id = f"job_{wf_id}"
+        if scheduler.get_job(job_id):
+            scheduler.remove_job(job_id)
+        
+        scheduler.add_job(
+            trigger_workflow_run, 
+            trigger=trigger, 
+            args=[wf_id], 
+            id=job_id
+        )
+        return {"status": "scheduled", "job_id": job_id, "cron": payload.cron_expression}
+    except Exception as e:
+        raise HTTPException(400, f"Invalid cron expression: {e}")
 
 @app.get("/executions/{exec_id}")
 def get_execution(exec_id: str):
-    if exec_id not in executions:
+    exec_data = database.get_execution(exec_id)
+    if not exec_data:
         raise HTTPException(404, "Execution not found")
-    return executions[exec_id]
-
-
-# ===== Simulation =====
-
-def _ts():
-    return time.strftime("%H:%M:%S")
-
-
-def _simulate_execution(exec_id: str, nodes: list):
-    """Simulate sequential step execution with log lines."""
-    execution = executions[exec_id]
-
-    for i, node in enumerate(nodes):
-        node_id = node.get("id", f"node-{i}")
-        label = node.get("data", {}).get("label", node_id)
-        step_type = node.get("data", {}).get("stepType", "unknown")
-
-        execution["logs"].append({
-            "timestamp": _ts(),
-            "level": "info",
-            "message": f"[{i+1}/{len(nodes)}] Executing: {label} ({step_type})",
-        })
-        time.sleep(0.8)  # Simulate work
-
-        # Random success/fail (mostly success)
-        import random
-        success = random.random() > 0.1
-
-        if success:
-            execution["nodeResults"][node_id] = {
-                "status": "success",
-                "output": f"Step '{label}' completed successfully.",
-            }
-            execution["logs"].append({
-                "timestamp": _ts(),
-                "level": "success",
-                "message": f"  ✓ {label} → OK",
-            })
-        else:
-            execution["nodeResults"][node_id] = {
-                "status": "failed",
-                "output": f"Step '{label}' encountered an error.",
-            }
-            execution["logs"].append({
-                "timestamp": _ts(),
-                "level": "error",
-                "message": f"  ✕ {label} → FAILED (simulated error)",
-            })
-            execution["status"] = "failed"
-            execution["logs"].append({
-                "timestamp": _ts(),
-                "level": "error",
-                "message": "Execution halted due to error.",
-            })
-            return
-
-    execution["status"] = "completed"
-    execution["logs"].append({
-        "timestamp": _ts(),
-        "level": "success",
-        "message": f"✓ Workflow completed — {len(nodes)} steps executed.",
-    })
+    return exec_data
