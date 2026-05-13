@@ -20,7 +20,7 @@ jobs:
         node-version: '22.x'
         cache: 'npm'
         cache-dependency-path: workflow-builder/package-lock.json
-    - run: npm ci
+    - run: npm install
     - run: npm run build
 
   test-backend:
