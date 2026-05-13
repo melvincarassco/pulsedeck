@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./workflow-api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./workflow-api:/app
+    environment:
+      - ENVIRONMENT=development
+
+  frontend:
+    build:
+      context: ./workflow-builder
+      dockerfile: Dockerfile
+    ports:
+      - "5180:5180"
+    volumes:
+      - ./workflow-builder:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend

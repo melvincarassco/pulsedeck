@@ -5,6 +5,9 @@ A browser-based visual workflow editor: place steps on a canvas, connect them, c
 An alternative to fragile spreadsheet logic — the graph *is* the spec: steps, order, and parameters are explicit, versionable (JSON export), and executable by a backend.
 
 ![PulseDeck](https://img.shields.io/badge/Status-Active-brightgreen) ![React](https://img.shields.io/badge/React-18-61DAFB) ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688)
+[![CI](https://github.com/melvincarassco/pulsedeck/actions/workflows/ci.yml/badge.svg)](https://github.com/melvincarassco/pulsedeck/actions/workflows/ci.yml)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ## ✨ Features
 
@@ -41,7 +44,15 @@ An alternative to fragile spreadsheet logic — the graph *is* the spec: steps, 
 
 ## 🚀 Quick Start
 
-### Frontend
+### Docker (Recommended)
+The easiest way to run the entire stack is with Docker:
+```bash
+docker compose up
+```
+- **Frontend**: http://localhost:5180
+- **Backend API Docs**: http://localhost:8000/docs
+
+### Manual Setup - Frontend
 ```bash
 cd workflow-builder
 npm install
