@@ -11,6 +11,8 @@ An alternative to fragile spreadsheet logic — the graph *is* the spec: steps, 
 
 ## ✨ Features
 
+For an in-depth look at the system design, database schema, and graph traversal logic, please see our [Architecture Document](ARCHITECTURE.md).
+
 ### Frontend
 - **Visual Canvas** — React Flow-based horizontal pipeline with snap-to-grid, minimap, and zoom controls
 - **Step Library** — 15+ step types across 5 categories (Messaging, Logic, Data, Integration, Control)
