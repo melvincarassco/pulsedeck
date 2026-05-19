@@ -38,7 +38,7 @@ function NodeConfig() {
         <div>
           <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1 block">Label</label>
           <input
-            className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-xs text-text-primary focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20 transition-all outline-none"
+            className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-xs text-text-primary focus:border-accent-500 focus:ring-1 focus:ring-accent-500/20 transition-all outline-none"
             value={node.data.label}
             onChange={(e) => updateNodeData(selectedNodeId, { label: e.target.value })}
           />
@@ -59,7 +59,7 @@ function NodeConfig() {
             <div key={key} className="mb-2">
               <label className="text-[10px] text-text-muted mb-0.5 block">{key}</label>
               <input
-                className="w-full px-3 py-1.5 bg-bg-input border border-border-subtle rounded text-xs text-text-primary font-mono focus:border-purple-500 outline-none transition-all"
+                className="w-full px-3 py-1.5 bg-bg-input border border-border-subtle rounded text-xs text-text-primary font-mono focus:border-accent-500 outline-none transition-all"
                 value={value}
                 onChange={(e) => updateNodeConfig(selectedNodeId, key, e.target.value)}
               />
@@ -108,7 +108,7 @@ function AddConfigField({ nodeId }) {
       />
       <button
         onClick={handleAdd}
-        className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-[10px] font-bold hover:bg-purple-500/30 transition-colors"
+        className="px-2 py-1 bg-accent-500/20 text-accent-400 rounded text-[10px] font-bold hover:bg-accent-500/30 transition-colors"
       >
         +
       </button>
@@ -137,7 +137,7 @@ function WorkflowConfig() {
       <div>
         <label className="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1 block">Workflow Name</label>
         <input
-          className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-xs text-text-primary focus:border-purple-500 outline-none transition-all"
+          className="w-full px-3 py-2 bg-bg-input border border-border-subtle rounded-lg text-xs text-text-primary focus:border-accent-500 outline-none transition-all"
           value={workflowName}
           onChange={(e) => setWorkflowName(e.target.value)}
         />
@@ -149,7 +149,7 @@ function WorkflowConfig() {
           <div key={key} className="flex items-center gap-1 mb-2">
             <span className="text-[10px] text-text-muted font-mono w-20 truncate">{key}</span>
             <input
-              className="flex-1 px-2 py-1 bg-bg-input border border-border-subtle rounded text-[10px] text-text-primary font-mono outline-none focus:border-purple-500 transition-all"
+              className="flex-1 px-2 py-1 bg-bg-input border border-border-subtle rounded text-[10px] text-text-primary font-mono outline-none focus:border-accent-500 transition-all"
               value={value}
               onChange={(e) => setParameter(key, e.target.value)}
             />
@@ -176,7 +176,7 @@ function WorkflowConfig() {
           />
           <button
             onClick={handleAddParam}
-            className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-[10px] font-bold hover:bg-purple-500/30 transition-colors"
+            className="px-2 py-1 bg-accent-500/20 text-accent-400 rounded text-[10px] font-bold hover:bg-accent-500/30 transition-colors"
           >
             +
           </button>
@@ -222,7 +222,7 @@ function TabButton({ label, tab }) {
       onClick={() => setTab(tab)}
       className={`flex-1 py-2.5 text-xs font-semibold transition-all ${
         isActive
-          ? 'text-purple-400 border-b-2 border-purple-500'
+          ? 'text-accent-400 border-b-2 border-accent-500'
           : 'text-text-muted hover:text-text-secondary'
       }`}
     >

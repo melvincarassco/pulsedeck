@@ -71,9 +71,9 @@ export default function WorkflowCanvas() {
       >
         <Background
           variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color="rgba(255,255,255,0.04)"
+          gap={24}
+          size={1.2}
+          color="rgba(6,182,212,0.06)"
         />
         <Controls
           showInteractive={false}
@@ -86,15 +86,15 @@ export default function WorkflowCanvas() {
           className="!bottom-4 !right-4"
           maskColor="rgba(0,0,0,0.6)"
           nodeColor={(node) => {
-            if (node.type === 'start') return '#8b5cf6';
+            if (node.type === 'start') return '#06b6d4';
             const colors = {
-              messaging: '#22c55e',
-              logic: '#f59e0b',
-              data: '#3b82f6',
-              integration: '#8b5cf6',
-              control: '#64748b',
+              file:        '#06b6d4',
+              logic:       '#f59e0b',
+              data:        '#6366f1',
+              integration: '#10b981',
+              control:     '#3d5a74',
             };
-            return colors[node.data?.category] || '#64748b';
+            return colors[node.data?.category] || '#3d5a74';
           }}
         />
       </ReactFlow>
@@ -103,9 +103,9 @@ export default function WorkflowCanvas() {
       {nodes.length <= 1 && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-fade-in">
           <div className="text-center text-text-muted">
-            <div className="text-4xl mb-3 opacity-40">🎨</div>
-            <div className="text-sm font-medium">Drag steps from the palette</div>
-            <div className="text-xs mt-1">or press <kbd className="px-1.5 py-0.5 bg-bg-tertiary rounded text-text-secondary text-[10px] font-mono">L</kbd> to toggle it</div>
+            <div className="text-4xl mb-3 opacity-30">📁</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Drop steps to build your pipeline</div>
+            <div className="text-xs mt-1.5">Press <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ background: 'var(--color-bg-tertiary)', color: 'var(--color-accent-400)', border: '1px solid rgba(6,182,212,0.2)' }}>L</kbd> to open the step library</div>
           </div>
         </div>
       )}

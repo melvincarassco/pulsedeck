@@ -1,14 +1,19 @@
-// Step palette definitions — all available step types
+// Step palette definitions — file processing focused
 export const STEP_CATEGORIES = [
   {
-    id: 'messaging',
-    label: 'Messaging',
-    color: '#22c55e',
+    id: 'file',
+    label: 'File Processing',
+    color: '#8b5cf6',
     steps: [
-      { stepType: 'send_whatsapp', label: 'Send WhatsApp', icon: '💬', channel: 'whatsapp' },
-      { stepType: 'send_rcs', label: 'Send RCS', icon: '📱', channel: 'rcs' },
-      { stepType: 'send_sms', label: 'Send SMS', icon: '✉️', channel: 'sms' },
-      { stepType: 'send_email', label: 'Send Email', icon: '📧', channel: null },
+      { stepType: 'file_upload', label: 'File Upload', icon: '📁' },
+      { stepType: 'file_read', label: 'Read File', icon: '📖' },
+      { stepType: 'file_write', label: 'Write File', icon: '💾' },
+      { stepType: 'file_convert', label: 'Convert Format', icon: '🔄' },
+      { stepType: 'file_parse', label: 'Parse (CSV/JSON/XML)', icon: '🗂️' },
+      { stepType: 'file_compress', label: 'Compress / Zip', icon: '📦' },
+      { stepType: 'file_merge', label: 'Merge Files', icon: '🔗' },
+      { stepType: 'file_split', label: 'Split File', icon: '✂️' },
+      { stepType: 'file_delete', label: 'Delete File', icon: '🗑️' },
     ],
   },
   {
@@ -18,7 +23,7 @@ export const STEP_CATEGORIES = [
     steps: [
       { stepType: 'condition', label: 'Condition', icon: '🔀' },
       { stepType: 'delay', label: 'Delay', icon: '⏱️' },
-      { stepType: 'loop', label: 'Loop', icon: '🔄' },
+      { stepType: 'loop', label: 'Loop', icon: '🔁' },
     ],
   },
   {
@@ -29,16 +34,18 @@ export const STEP_CATEGORIES = [
       { stepType: 'http_request', label: 'HTTP Request', icon: '🌐' },
       { stepType: 'transform', label: 'Transform Data', icon: '🔧' },
       { stepType: 'set_variable', label: 'Set Variable', icon: '📝' },
+      { stepType: 'db_query', label: 'Database Query', icon: '🗄️' },
     ],
   },
   {
     id: 'integration',
     label: 'Integration',
-    color: '#8b5cf6',
+    color: '#06b6d4',
     steps: [
       { stepType: 'webhook', label: 'Webhook', icon: '🔗' },
-      { stepType: 'file_upload', label: 'File Upload', icon: '📁' },
-      { stepType: 'db_query', label: 'Database Query', icon: '🗄️' },
+      { stepType: 'ftp_transfer', label: 'FTP Transfer', icon: '📡' },
+      { stepType: 's3_upload', label: 'S3 Upload', icon: '☁️' },
+      { stepType: 's3_download', label: 'S3 Download', icon: '⬇️' },
     ],
   },
   {
@@ -46,6 +53,7 @@ export const STEP_CATEGORIES = [
     label: 'Control',
     color: '#64748b',
     steps: [
+      { stepType: 'start', label: 'Start', icon: '▶️' },
       { stepType: 'end', label: 'End', icon: '🏁' },
       { stepType: 'error_handler', label: 'Error Handler', icon: '⚠️' },
     ],
@@ -66,11 +74,3 @@ export function getStepMeta(stepType) {
     categoryColor: '#64748b',
   };
 }
-
-// Channel filter options
-export const CHANNELS = [
-  { id: 'all', label: 'All Steps', icon: '📦' },
-  { id: 'whatsapp', label: 'WhatsApp', icon: '💬' },
-  { id: 'rcs', label: 'RCS', icon: '📱' },
-  { id: 'sms', label: 'SMS', icon: '✉️' },
-];

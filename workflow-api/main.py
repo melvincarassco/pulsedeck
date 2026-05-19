@@ -4,11 +4,20 @@ from pydantic import BaseModel
 from typing import Any, Optional
 import uuid
 import time
+from concurrent.futures import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 import database
 from execution_engine import run_graph_async
 
-app = FastAPI(title="PulseDeck Workflow API", version="2.0.0")
+# ── Thread pool for CPU / IO bound tasks ──────────────────────────────────────
+# max_workers = None → defaults to min(32, cpu_count + 4) on Python 3.8+
+executor = ThreadPoolExecutor(max_workers=None)
+
+app = FastAPI(
+    title="PulseDeck File Processing API",
+    version="3.0.0",
+    description="High-performance file processing workflow engine with thread-pool execution.",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,10 +28,37 @@ app.add_middleware(
 
 scheduler = BackgroundScheduler()
 
+
 @app.on_event("startup")
 def startup_event():
     database.init_db()
     scheduler.start()
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    scheduler.shutdown(wait=False)
+    executor.shutdown(wait=False)
+
+
+# ── Health / Root ─────────────────────────────────────────────────────────────
+
+@app.get("/")
+def root():
+    return {
+        "service": "PulseDeck File Processing API",
+        "version": "3.0.0",
+        "status": "healthy",
+        "docs": "/docs",
+    }
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
 
 class WorkflowPayload(BaseModel):
     workflowName: str = "Untitled Workflow"
@@ -31,7 +67,14 @@ class WorkflowPayload(BaseModel):
     canvas: dict = {"nodes": [], "edges": []}
     parameters: dict = {}
 
-@app.post("/workflows")
+
+class SchedulePayload(BaseModel):
+    cron_expression: str  # e.g. "*/5 * * * *"
+
+
+# ── Workflow CRUD ─────────────────────────────────────────────────────────────
+
+@app.post("/workflows", status_code=201)
 def create_workflow(payload: WorkflowPayload):
     wf_id = str(uuid.uuid4())[:8]
     data = payload.dict()
@@ -39,30 +82,47 @@ def create_workflow(payload: WorkflowPayload):
     database.save_workflow(wf_id, data)
     return {"id": wf_id}
 
+
 @app.get("/workflows")
 def list_workflows():
     return {"workflows": database.get_all_workflows()}
 
+
 @app.get("/workflows/{wf_id}")
 def get_workflow(wf_id: str):
     wf = database.get_workflow(wf_id)
-    if not wf: raise HTTPException(404, "Workflow not found")
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
     return wf
+
 
 @app.put("/workflows/{wf_id}")
 def update_workflow(wf_id: str, payload: WorkflowPayload):
     wf = database.get_workflow(wf_id)
-    if not wf: raise HTTPException(404, "Workflow not found")
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
     data = payload.dict()
     data["savedAt"] = data["savedAt"] or time.strftime("%Y-%m-%dT%H:%M:%SZ")
     database.save_workflow(wf_id, data)
     return {"id": wf_id, "status": "updated"}
 
+
+@app.delete("/workflows/{wf_id}", status_code=204)
+def delete_workflow(wf_id: str):
+    wf = database.get_workflow(wf_id)
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+    database.delete_workflow(wf_id)
+
+
+# ── Validation ────────────────────────────────────────────────────────────────
+
 @app.post("/workflows/{wf_id}/validate")
 def validate_workflow(wf_id: str):
     wf = database.get_workflow(wf_id)
-    if not wf: raise HTTPException(404, "Workflow not found")
-    
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+
     errors = []
     nodes = wf.get("canvas", {}).get("nodes", [])
     edges = wf.get("canvas", {}).get("edges", [])
@@ -84,9 +144,13 @@ def validate_workflow(wf_id: str):
 
     return {"valid": len(errors) == 0, "errors": errors}
 
-def trigger_workflow_run(wf_id: str, trigger_payload: dict = None):
+
+# ── Execution ─────────────────────────────────────────────────────────────────
+
+def _trigger_workflow_run(wf_id: str, trigger_payload: dict = None) -> str:
     wf = database.get_workflow(wf_id)
-    if not wf: raise Exception("Workflow not found")
+    if not wf:
+        raise ValueError("Workflow not found")
 
     exec_id = str(uuid.uuid4())[:8]
     nodes = wf.get("canvas", {}).get("nodes", [])
@@ -97,57 +161,62 @@ def trigger_workflow_run(wf_id: str, trigger_payload: dict = None):
         "executionId": exec_id,
         "workflowId": wf_id,
         "status": "running",
-        "logs": [{"timestamp": time.strftime("%H:%M:%S"), "level": "info", "message": f"Starting workflow: {wf['workflowName']}"}],
+        "logs": [{
+            "timestamp": time.strftime("%H:%M:%S"),
+            "level": "info",
+            "message": f"Starting workflow: {wf['workflowName']}",
+        }],
         "nodeResults": {},
     })
 
-    run_graph_async(exec_id, nodes, edges, params, trigger_payload)
+    # Dispatch to the shared thread pool — non-blocking
+    run_graph_async(exec_id, nodes, edges, params, trigger_payload, pool=executor)
     return exec_id
+
 
 @app.post("/workflows/{wf_id}/run")
 def run_workflow(wf_id: str):
     try:
-        exec_id = trigger_workflow_run(wf_id)
+        exec_id = _trigger_workflow_run(wf_id)
         return {"executionId": exec_id, "status": "running"}
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(404, str(e))
+
 
 @app.post("/webhook/{wf_id}")
 async def webhook_trigger(wf_id: str, request: Request):
-    """Real-world integration: Webhook trigger"""
     payload = await request.json()
     try:
-        exec_id = trigger_workflow_run(wf_id, payload)
+        exec_id = _trigger_workflow_run(wf_id, payload)
         return {"executionId": exec_id, "status": "running", "message": "Webhook received"}
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(404, str(e))
 
-class SchedulePayload(BaseModel):
-    cron_expression: str # e.g. "*/5 * * * *" for every 5 mins
 
 @app.post("/workflows/{wf_id}/schedule")
 def schedule_workflow(wf_id: str, payload: SchedulePayload):
-    """Epic 5: Scheduled Triggers"""
     wf = database.get_workflow(wf_id)
-    if not wf: raise HTTPException(404, "Workflow not found")
-    
+    if not wf:
+        raise HTTPException(404, "Workflow not found")
+
     from apscheduler.triggers.cron import CronTrigger
-    
     try:
         trigger = CronTrigger.from_crontab(payload.cron_expression)
         job_id = f"job_{wf_id}"
         if scheduler.get_job(job_id):
             scheduler.remove_job(job_id)
-        
         scheduler.add_job(
-            trigger_workflow_run, 
-            trigger=trigger, 
-            args=[wf_id], 
-            id=job_id
+            _trigger_workflow_run,
+            trigger=trigger,
+            args=[wf_id],
+            id=job_id,
         )
         return {"status": "scheduled", "job_id": job_id, "cron": payload.cron_expression}
     except Exception as e:
         raise HTTPException(400, f"Invalid cron expression: {e}")
+
+
+# ── Execution results ─────────────────────────────────────────────────────────
 
 @app.get("/executions/{exec_id}")
 def get_execution(exec_id: str):
@@ -155,3 +224,8 @@ def get_execution(exec_id: str):
     if not exec_data:
         raise HTTPException(404, "Execution not found")
     return exec_data
+
+
+@app.get("/executions")
+def list_executions(wf_id: Optional[str] = None, limit: int = 50):
+    return {"executions": database.get_all_executions(wf_id=wf_id, limit=limit)}

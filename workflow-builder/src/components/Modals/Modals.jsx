@@ -53,7 +53,7 @@ function ExportModal() {
           {json}
         </pre>
         <div className="flex gap-2 mt-4">
-          <button onClick={handleDownload} className="flex-1 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-600 to-purple-500 text-white hover:shadow-lg hover:shadow-purple-500/20 transition-all">
+          <button onClick={handleDownload} className="flex-1 py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-600 to-accent-500 text-white hover:shadow-lg hover:shadow-accent-500/20 transition-all">
             ⬇ Download JSON
           </button>
           <button onClick={handleCopy} className="px-4 py-2 rounded-lg text-xs font-medium border border-border-subtle text-text-secondary hover:bg-bg-tertiary transition-all">
@@ -101,14 +101,14 @@ function ImportModal() {
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-wider text-text-muted mb-1">Or paste JSON</label>
           <textarea
-            className="w-full h-40 bg-bg-input border border-border-subtle rounded-xl p-3 text-[11px] text-text-primary font-mono resize-none outline-none focus:border-purple-500 transition-all"
+            className="w-full h-40 bg-bg-input border border-border-subtle rounded-xl p-3 text-[11px] text-text-primary font-mono resize-none outline-none focus:border-accent-500 transition-all"
             value={jsonInput}
             onChange={(e) => { setJsonInput(e.target.value); setError(''); }}
             placeholder='{"workflowName": "...", "canvas": { ... }}'
           />
         </div>
         {error && <div className="text-xs text-rose-400">⚠ {error}</div>}
-        <button onClick={handleImport} disabled={!jsonInput.trim()} className="w-full py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-600 to-purple-500 text-white hover:shadow-lg hover:shadow-purple-500/20 transition-all disabled:opacity-40">
+        <button onClick={handleImport} disabled={!jsonInput.trim()} className="w-full py-2 rounded-lg text-xs font-bold bg-gradient-to-r from-accent-600 to-accent-500 text-white hover:shadow-lg hover:shadow-accent-500/20 transition-all disabled:opacity-40">
           Import
         </button>
       </div>
@@ -155,7 +155,7 @@ function OpenModal() {
             <button
               key={wf.id}
               onClick={() => handleOpen(wf.id)}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-border-subtle hover:border-purple-500/30 hover:bg-bg-tertiary transition-all text-left group"
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-border-subtle hover:border-accent-500/30 hover:bg-bg-tertiary transition-all text-left group"
             >
               <div>
                 <div className="text-xs font-semibold text-text-primary">{wf.workflowName || wf.name || 'Untitled'}</div>
@@ -163,7 +163,7 @@ function OpenModal() {
                   {wf.savedAt ? new Date(wf.savedAt).toLocaleString() : 'Unknown date'}
                 </div>
               </div>
-              <span className="text-xs text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity">Open →</span>
+              <span className="text-xs text-accent-400 opacity-0 group-hover:opacity-100 transition-opacity">Open →</span>
             </button>
           ))}
         </div>
@@ -189,11 +189,11 @@ function TemplatesModal() {
           <button
             key={i}
             onClick={() => handleUse(tpl)}
-            className="w-full p-4 rounded-xl border border-border-subtle hover:border-purple-500/30 hover:bg-bg-tertiary transition-all text-left group"
+            className="w-full p-4 rounded-xl border border-border-subtle hover:border-accent-500/30 hover:bg-bg-tertiary transition-all text-left group"
           >
             <div className="text-xs font-bold text-text-primary mb-1">{tpl.name}</div>
             <div className="text-[11px] text-text-secondary">{tpl.description}</div>
-            <div className="text-[10px] text-purple-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Use this template →</div>
+            <div className="text-[10px] text-accent-400 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">Use this template →</div>
           </button>
         ))}
       </div>

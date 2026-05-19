@@ -1,27 +1,23 @@
 import { useState } from 'react';
 import useUiStore from '../../store/uiStore';
 import useWorkflowStore from '../../store/workflowStore';
-import { STEP_CATEGORIES, CHANNELS } from '../../utils/steps';
+import { STEP_CATEGORIES } from '../../utils/steps';
 
 export default function StepPalette() {
   const isPaletteOpen = useUiStore(s => s.isPaletteOpen);
-  const activeChannel = useUiStore(s => s.activeChannel);
-  const setChannel = useUiStore(s => s.setChannel);
   const searchQuery = useUiStore(s => s.searchQuery);
   const setSearch = useUiStore(s => s.setSearch);
   const togglePalette = useUiStore(s => s.togglePalette);
   const addNode = useWorkflowStore(s => s.addNode);
 
-  const [expandedCat, setExpandedCat] = useState('messaging');
+  const [expandedCat, setExpandedCat] = useState('file');
 
   if (!isPaletteOpen) return null;
 
-  // Filter steps by channel and search
+  // Filter steps by search
   const filteredCategories = STEP_CATEGORIES.map(cat => ({
     ...cat,
     steps: cat.steps.filter(step => {
-      if (activeChannel !== 'all' && step.channel && step.channel !== activeChannel) return false;
-      if (activeChannel !== 'all' && !step.channel && cat.id === 'messaging') return false;
       if (searchQuery && !step.label.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     }),
@@ -32,7 +28,7 @@ export default function StepPalette() {
       label: step.label,
       stepType: step.stepType,
       category: category.id,
-      channel: step.channel || null,
+      channel: null,
       icon: step.icon,
     });
   };
@@ -62,23 +58,6 @@ export default function StepPalette() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </div>
-
-      {/* Channel Tabs */}
-      <div className="px-3 pb-2 flex gap-1 flex-wrap">
-        {CHANNELS.map(ch => (
-          <button
-            key={ch.id}
-            onClick={() => setChannel(ch.id)}
-            className={`px-2 py-1 rounded-full text-[10px] font-bold transition-all ${
-              activeChannel === ch.id
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'bg-bg-tertiary text-text-muted border border-transparent hover:text-text-secondary'
-            }`}
-          >
-            {ch.icon} {ch.label}
-          </button>
-        ))}
       </div>
 
       {/* Categories */}

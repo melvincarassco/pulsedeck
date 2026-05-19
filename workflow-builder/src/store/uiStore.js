@@ -6,7 +6,7 @@ const useUiStore = create((set) => ({
   isPaletteOpen: true,
   isExecutionPanelOpen: false,
   activeModal: null, // 'export' | 'import' | 'open' | 'templates' | 'shortcuts' | null
-  activeChannel: 'all', // 'all' | 'whatsapp' | 'rcs' | 'sms'
+
   searchQuery: '',
 
   setTab: (tab) => set({ activeTab: tab }),
@@ -16,7 +16,7 @@ const useUiStore = create((set) => ({
   toggleExecutionPanel: () => set((s) => ({ isExecutionPanelOpen: !s.isExecutionPanelOpen })),
   openModal: (modal) => set({ activeModal: modal }),
   closeModal: () => set({ activeModal: null }),
-  setChannel: (channel) => set({ activeChannel: channel }),
+
   setSearch: (query) => set({ searchQuery: query }),
 }));
 

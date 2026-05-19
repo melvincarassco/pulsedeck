@@ -26,10 +26,10 @@ export default function Header() {
     <header className="h-12 bg-bg-secondary border-b border-border-subtle flex items-center px-4 gap-3 flex-shrink-0 z-50">
       {/* Logo */}
       <div className="flex items-center gap-2 mr-4">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-purple-600 to-purple-400 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-purple-500/20">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-black shadow-lg" style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 4px 12px rgba(6,182,212,0.3)' }}>
           P
         </div>
-        <span className="text-sm font-bold bg-gradient-to-r from-purple-400 to-text-primary bg-clip-text text-transparent">
+        <span className="text-sm font-bold accent-text">
           PulseDeck
         </span>
       </div>
@@ -40,7 +40,7 @@ export default function Header() {
       {/* Workflow name */}
       <div className="flex items-center gap-2">
         <input
-          className="bg-transparent text-xs font-semibold text-text-primary outline-none border-b border-transparent hover:border-border-medium focus:border-purple-500 transition-colors px-1 py-0.5 max-w-48"
+          className="bg-transparent text-xs font-semibold text-text-primary outline-none border-b border-transparent hover:border-border-medium focus:border-accent-500 transition-colors px-1 py-0.5 max-w-48"
           value={workflowName}
           onChange={(e) => useWorkflowStore.getState().setWorkflowName(e.target.value)}
         />
@@ -67,7 +67,10 @@ export default function Header() {
 
         <button
           onClick={handleSave}
-          className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-purple-600 to-purple-500 text-white hover:shadow-lg hover:shadow-purple-500/20 transition-all"
+          className="px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all"
+          style={{ background: 'linear-gradient(135deg, #0891b2, #06b6d4)', boxShadow: '0 2px 10px rgba(6,182,212,0.25)' }}
+          onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(6,182,212,0.45)'}
+          onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 10px rgba(6,182,212,0.25)'}
         >
           💾 Save
         </button>
